@@ -1,16 +1,28 @@
 // ─────────────────────────────────────────────────────────────
 // js/leave-request-detail.js — หน้าที่ 3 รายละเอียดใบลา
-// สัปดาห์ที่ 6 (ต้นสัปดาห์): อ่านจากข้อมูลปลอม และเปลี่ยนสถานะในหน่วยความจำ
+// สัปดาห์ที่ 6: อ่านใบลาจริงจาก Firestore · เปลี่ยนสถานะ/ความเห็นยังอยู่แค่ในหน่วยความจำ
 // ─────────────────────────────────────────────────────────────
 
-(function () {
+(async function () {
   var รหัสใบลา = ค่าจากURL("id");
   var กล่องใบลา = document.getElementById("กล่องใบลา");
   var กล่องความเห็น = document.getElementById("กล่องความเห็น");
+  var กล่องจำนวนรวม = document.getElementById("จำนวนรวม");
 
-  // หาใบลาจากข้อมูลปลอม บวกกับใบที่เพิ่งยื่นในหน้าที่ 2
+  var ใบลาทั้งหมด;
+  try {
+    ใบลาทั้งหมด = await window.getCollection("leaveRequests");
+  } catch (err) {
+    console.error(err);
+    showConfigWarning("อ่านข้อมูลใบลาจาก Firestore ไม่สำเร็จ");
+    return;
+  }
+
+  กล่องจำนวนรวม.textContent = "มีใบลาทั้งหมดในระบบ " + ใบลาทั้งหมด.length + " ใบ";
+
+  // หาใบลาที่ต้องการ บวกกับใบที่เพิ่งยื่นในหน้าที่ 2 (ยังไม่บันทึกลง Firestore จริง)
   var ใบลาที่ยื่นใหม่ = JSON.parse(sessionStorage.getItem("ใบลาที่ยื่นใหม่") || "[]");
-  var ใบ = window.LEAVE_DATA.leaveRequests.concat(ใบลาที่ยื่นใหม่)
+  var ใบ = ใบลาทั้งหมด.concat(ใบลาที่ยื่นใหม่)
     .find(function (x) { return x.id === รหัสใบลา; });
 
   if (!ใบ) {
