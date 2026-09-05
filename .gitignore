@@ -2,9 +2,6 @@
 # .gitignore ของโครงงาน LeaveEasy
 #
 # ไฟล์นี้คือ "รายชื่อสิ่งที่ห้ามส่งขึ้น GitHub"
-#
-# 📌 ตอนนี้กันไว้แค่ไฟล์ขยะที่เครื่องมือสร้างเอง
-#    ส่วนการกันไฟล์ที่มีคีย์ คุณจะได้เพิ่มเองในสัปดาห์ที่ 7
 # ─────────────────────────────────────────────────────────────
 
 
@@ -19,6 +16,31 @@ desktop.ini
 *.log
 .vscode/
 .idea/
+
+
+# ── ไฟล์ตั้งค่า/คีย์ที่ห้ามหลุดขึ้น GitHub ──
+# หมายเหตุ: js/firebase-init.js มี apiKey ของ Firebase web app อยู่ในไฟล์
+# ค่านั้น "ไม่ใช่ความลับ" ตาม SETUP.md — ความปลอดภัยจริงมาจาก Firestore Security Rules
+# ส่วนไฟล์ด้านล่างนี้คือของที่ "เป็นความลับจริง" ห้ามคอมมิตเด็ดขาด
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*serviceAccountKey*.json
+*-firebase-adminsdk-*.json
+credentials.json
+secrets.json
+.runtimeconfig.json
+
+# ไฟล์ที่ Firebase CLI สร้างขึ้นเองตอนใช้งาน (ไม่ใช่ความลับ แต่ไม่ควรคอมมิต)
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+pglite-debug.log
 
 
 # ─────────────────────────────────────────────────────────────
