@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, addDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
 // ค่าจาก Firebase Console ของโปรเจกต์ leaveeasy-patchara-c84bb
 // apiKey ของ Firebase web app ไม่ใช่ความลับ ความปลอดภัยจริงมาจาก Firestore Security Rules
@@ -27,4 +27,16 @@ window.db = getFirestore(app);
 window.getCollection = async function (name) {
   var snap = await getDocs(collection(window.db, name));
   return snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+};
+
+// เพิ่มไฟล์ใหม่ลงโฟลเดอร์ (collection) — Firestore สร้างชื่อไฟล์ (Document ID) ให้อัตโนมัติ
+// คืนค่าเป็นชื่อไฟล์ที่สร้างขึ้น
+window.addToCollection = async function (name, data) {
+  var ref = await addDoc(collection(window.db, name), data);
+  return ref.id;
+};
+
+// แก้เฉพาะ field ที่ส่งมาใน fields ของไฟล์เดิม ไม่แตะ field อื่นในไฟล์นั้น
+window.updateInCollection = async function (name, id, fields) {
+  await updateDoc(doc(window.db, name, id), fields);
 };
