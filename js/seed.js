@@ -7,6 +7,8 @@
 
 import { doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
+await window.requireLogin();
+
 var ปุ่ม = document.getElementById("ปุ่มใส่ข้อมูล");
 var กล่องผล = document.getElementById("ผลลัพธ์");
 

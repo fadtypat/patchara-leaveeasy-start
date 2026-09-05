@@ -5,7 +5,8 @@
 // ─────────────────────────────────────────────────────────────
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
 // ค่าจาก Firebase Console ของโปรเจกต์ leaveeasy-patchara-c84bb
 // apiKey ของ Firebase web app ไม่ใช่ความลับ ความปลอดภัยจริงมาจาก Firestore Security Rules
@@ -44,4 +45,38 @@ window.updateInCollection = async function (name, id, fields) {
 // ลบไฟล์ออกจากโฟลเดอร์ (collection)
 window.deleteFromCollection = async function (name, id) {
   await deleteDoc(doc(window.db, name, id));
+};
+
+// ── Firebase Authentication ──
+window.auth = getAuth(app);
+
+// สมัครสมาชิก: สร้างบัญชี Auth + ตั้งชื่อที่แสดง + สร้างไฟล์โปรไฟล์ในโฟลเดอร์ users
+window.signUp = async function (name, email, password) {
+  var ผลลัพธ์ = await createUserWithEmailAndPassword(window.auth, email, password);
+  await updateProfile(ผลลัพธ์.user, { displayName: name });
+  await setDoc(doc(window.db, "users", ผลลัพธ์.user.uid), { name: name, email: email, role: "employee" });
+  return ผลลัพธ์.user;
+};
+
+window.logIn = async function (email, password) {
+  var ผลลัพธ์ = await signInWithEmailAndPassword(window.auth, email, password);
+  return ผลลัพธ์.user;
+};
+
+window.logOut = async function () {
+  await signOut(window.auth);
+};
+
+// resolve เมื่อรู้ว่าล็อกอินอยู่ · ถ้าไม่ได้ล็อกอิน เด้งไปหน้า login แล้วไม่ resolve ต่อ
+window.requireLogin = function () {
+  return new Promise(function (resolve) {
+    var เลิกฟัง = onAuthStateChanged(window.auth, function (user) {
+      เลิกฟัง(); // ฟังแค่ครั้งแรกพอ กันไม่ให้ทำงานซ้ำเมื่อสถานะเปลี่ยนภายหลัง (เช่นตอน logOut)
+      if (user) {
+        resolve(user);
+      } else {
+        location.replace("login.html");
+      }
+    });
+  });
 };

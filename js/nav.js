@@ -28,6 +28,29 @@
   if (ที่วาง) ที่วาง.innerHTML = html;
 })();
 
+// แสดงชื่อผู้ใช้ที่ล็อกอินอยู่ + ปุ่มออกจากระบบ (เติมค่าในสัปดาห์ที่ 7)
+window.auth.onAuthStateChanged(function (user) {
+  var ที่วางชื่อ = document.getElementById("navUser");
+  if (!ที่วางชื่อ) return;
+  ที่วางชื่อ.innerHTML = "";
+  if (!user) return;
+
+  var ป้ายชื่อ = document.createElement("span");
+  ป้ายชื่อ.textContent = "👤 " + (user.displayName || user.email);
+
+  var ปุ่มออก = document.createElement("button");
+  ปุ่มออก.type = "button";
+  ปุ่มออก.className = "btn-ghost";
+  ปุ่มออก.textContent = "ออกจากระบบ";
+  ปุ่มออก.addEventListener("click", async function () {
+    await window.logOut();
+    location.replace("login.html");
+  });
+
+  ที่วางชื่อ.appendChild(ป้ายชื่อ);
+  ที่วางชื่อ.appendChild(ปุ่มออก);
+});
+
 // แถบเตือนสีเหลือง ใช้ตอนที่ยังไม่ได้ตั้งค่า Firebase
 function showConfigWarning(ข้อความ) {
   var กล่อง = document.createElement("div");

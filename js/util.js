@@ -30,3 +30,16 @@ function เวลาตอนนี้() {
 function ค่าจากURL(ชื่อ) {
   return new URLSearchParams(location.search).get(ชื่อ) || "";
 }
+
+// แปล error code ของ Firebase Authentication เป็นข้อความไทยให้ผู้ใช้อ่านเข้าใจ
+function ข้อความผิดพลาดAuth(err) {
+  var แผนที่ = {
+    "auth/email-already-in-use": "อีเมลนี้ถูกใช้สมัครแล้ว",
+    "auth/weak-password": "รหัสผ่านสั้นเกินไป ต้องมีอย่างน้อย 6 ตัวอักษร",
+    "auth/invalid-email": "รูปแบบอีเมลไม่ถูกต้อง",
+    "auth/invalid-credential": "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
+    "auth/wrong-password": "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
+    "auth/user-not-found": "ไม่พบบัญชีผู้ใช้นี้ในระบบ"
+  };
+  return แผนที่[err && err.code] || "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง";
+}

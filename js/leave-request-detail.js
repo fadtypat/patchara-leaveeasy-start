@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────────────────────
 
 (async function () {
+  var ผู้ใช้ = await window.requireLogin();
   var รหัสใบลา = ค่าจากURL("id");
   var กล่องใบลา = document.getElementById("กล่องใบลา");
   var กล่องความเห็น = document.getElementById("กล่องความเห็น");
@@ -150,11 +151,10 @@
     }
     เตือน.classList.add("hidden");
 
-    // สัปดาห์ที่ 6 ยังไม่มีล็อกอิน จึงสมมติว่าผู้เขียนคือ สมหญิง รักงาน
     ความเห็น.push({
       id: "ap-ใหม่-" + Date.now(),
       requestId: ใบ.id,
-      authorId: "u002", authorName: "สมหญิง รักงาน",
+      authorId: ผู้ใช้.uid, authorName: ผู้ใช้.displayName,
       message: ข้อความ,
       createdAt: เวลาตอนนี้()
     });

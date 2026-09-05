@@ -3,7 +3,9 @@
 // สัปดาห์ที่ 7: กดบันทึกแล้วเขียนใบลาใหม่ลง Firestore จริง (ผ่าน window.addToCollection)
 // ─────────────────────────────────────────────────────────────
 
-(function () {
+(async function () {
+  var ผู้ใช้ = await window.requireLogin();
+
   var ฟอร์ม = document.getElementById("ฟอร์มใบลา");
   var ช่องประเภท = document.getElementById("leaveTypeId");
   var กล่องเตือน = document.getElementById("ข้อความเตือน");
@@ -40,13 +42,12 @@
 
     var ประเภท = window.LEAVE_DATA.leaveTypes.find(function (t) { return t.id === ค่า.leaveTypeId; });
 
-    // ยังไม่มีล็อกอิน จึงสมมติว่าผู้ขอลาคือ สมชาย ใจดี (แก้เมื่อมีระบบล็อกอิน)
     // ไม่ใส่ id เอง — Firestore สร้างชื่อไฟล์ (Document ID) ให้อัตโนมัติ
     var ใบใหม่ = {
       title: ค่า.title,
       reason: ค่า.reason,
       status: "รอพิจารณา",                       // ใบใหม่เริ่มที่ รอพิจารณา เสมอ
-      requesterId: "u001", requesterName: "สมชาย ใจดี",
+      requesterId: ผู้ใช้.uid, requesterName: ผู้ใช้.displayName,
       approverId: "",      approverName: "",
       leaveTypeId: ประเภท.id, leaveTypeName: ประเภท.name,
       startDate: ค่า.startDate,

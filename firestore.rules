@@ -1,0 +1,12 @@
+rules_version = '2';
+
+// กฎขั้นต่ำของสัปดาห์ที่ 7 — ต้องล็อกอินก่อน ถึงจะอ่าน/เขียนได้
+// {document=**} ครอบทุกโฟลเดอร์รวมโฟลเดอร์ย่อย approvals ในตัวอยู่แล้ว
+// การแยกสิทธิ์ตามบทบาท/ตามเจ้าของใบลา เป็นงานสัปดาห์ที่ 8
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

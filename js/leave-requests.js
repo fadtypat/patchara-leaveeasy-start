@@ -4,6 +4,8 @@
 // ─────────────────────────────────────────────────────────────
 
 (async function () {
+  await window.requireLogin();
+
   var กล่อง = document.getElementById("ผลลัพธ์");
 
   var ใบลาจากฐานข้อมูล;
