@@ -28,6 +28,12 @@
     return;
   }
 
+  // พนักงานเปิดใบของคนอื่นไม่ได้ (ดู ACL.md)
+  if (ผู้ใช้.role === "employee" && ใบ.requesterId !== ผู้ใช้.uid) {
+    กล่องใบลา.innerHTML = "<p>คุณไม่มีสิทธิ์ดูใบลานี้</p>";
+    return;
+  }
+
   var ความเห็น = window.LEAVE_DATA.approvals.filter(function (c) { return c.requestId === ใบ.id; });
 
   วาดใบลา();
@@ -53,23 +59,35 @@
       return '<div class="field-row"><span class="k">' + r[0] + "</span><span>" + r[1] + "</span></div>";
     }).join("");
 
-    // ปุ่มอนุมัติ / ไม่อนุมัติ ขึ้นเฉพาะใบที่ยังรอพิจารณา
-    if (ใบ.status === "รอพิจารณา") {
-      html +=
-        '<div class="btn-row">' +
-        '<button type="button" class="btn-ok" id="ปุ่มอนุมัติ">อนุมัติ</button>' +
-        '<button type="button" class="btn-danger" id="ปุ่มไม่อนุมัติ">ไม่อนุมัติ</button>' +
-        '<button type="button" class="btn-danger" id="ปุ่มลบ">ลบใบลา</button>' +
-        "</div>";
+    // ปุ่มขึ้นตามสิทธิ์ของบทบาท (ดู ACL.md) — อนุมัติ/ไม่อนุมัติ: หัวหน้า/ฝ่ายบุคคลเท่านั้น
+    // ลบ: เจ้าของใบเอง หรือฝ่ายบุคคล (ลบของคนอื่นได้ทุกใบ) — ทั้งสองอย่างต้องยังอยู่ที่ รอพิจารณา
+    var อนุมัติได้ = (ผู้ใช้.role === "manager" || ผู้ใช้.role === "hr") && ใบ.status === "รอพิจารณา";
+    var ลบได้ = ใบ.status === "รอพิจารณา" && (ผู้ใช้.role === "hr" || ใบ.requesterId === ผู้ใช้.uid);
+
+    if (อนุมัติได้ || ลบได้) {
+      html += '<div class="btn-row">';
+      if (อนุมัติได้) {
+        html +=
+          '<button type="button" class="btn-ok" id="ปุ่มอนุมัติ">อนุมัติ</button>' +
+          '<button type="button" class="btn-danger" id="ปุ่มไม่อนุมัติ">ไม่อนุมัติ</button>';
+      }
+      if (ลบได้) {
+        html += '<button type="button" class="btn-danger" id="ปุ่มลบ">ลบใบลา</button>';
+      }
+      html += "</div>";
+    } else if (ใบ.status === "รอพิจารณา") {
+      html += '<p class="hint">รอหัวหน้าหรือฝ่ายบุคคลพิจารณา</p>';
     } else {
       html += '<p class="hint">ใบนี้พิจารณาแล้ว จึงเปลี่ยนสถานะต่อไม่ได้</p>';
     }
 
     กล่องใบลา.innerHTML = html;
 
-    if (ใบ.status === "รอพิจารณา") {
+    if (อนุมัติได้) {
       document.getElementById("ปุ่มอนุมัติ").addEventListener("click", function () { เปลี่ยนสถานะ("อนุมัติ"); });
       document.getElementById("ปุ่มไม่อนุมัติ").addEventListener("click", function () { เปลี่ยนสถานะ("ไม่อนุมัติ"); });
+    }
+    if (ลบได้) {
       document.getElementById("ปุ่มลบ").addEventListener("click", ลบใบลา);
     }
   }
@@ -103,12 +121,11 @@
   async function ลบใบลา() {
     if (!confirm('ยืนยันการลบใบลา "' + ใบ.title + '" หรือไม่')) return;
 
-    var ปุ่มอนุมัติ = document.getElementById("ปุ่มอนุมัติ");
-    var ปุ่มไม่อนุมัติ = document.getElementById("ปุ่มไม่อนุมัติ");
-    var ปุ่มลบ = document.getElementById("ปุ่มลบ");
-    ปุ่มอนุมัติ.disabled = true;
-    ปุ่มไม่อนุมัติ.disabled = true;
-    ปุ่มลบ.disabled = true;
+    // ปุ่มอนุมัติ/ไม่อนุมัติอาจไม่มีอยู่จริง (เช่น พนักงานลบใบของตัวเอง) จึงต้องเช็คก่อนปิดปุ่ม
+    var ปุ่มทั้งหมด = ["ปุ่มอนุมัติ", "ปุ่มไม่อนุมัติ", "ปุ่มลบ"]
+      .map(function (id) { return document.getElementById(id); })
+      .filter(function (ปุ่ม) { return ปุ่ม; });
+    ปุ่มทั้งหมด.forEach(function (ปุ่ม) { ปุ่ม.disabled = true; });
 
     try {
       await window.deleteFromCollection("leaveRequests", ใบ.id);
@@ -116,9 +133,7 @@
     } catch (err) {
       console.error(err);
       showConfigWarning("ลบใบลาไม่สำเร็จ");
-      ปุ่มอนุมัติ.disabled = false;
-      ปุ่มไม่อนุมัติ.disabled = false;
-      ปุ่มลบ.disabled = false;
+      ปุ่มทั้งหมด.forEach(function (ปุ่ม) { ปุ่ม.disabled = false; });
     }
   }
 

@@ -4,7 +4,12 @@
 // ─────────────────────────────────────────────────────────────
 
 (async function () {
-  await window.requireLogin();
+  var ผู้ใช้ = await window.requireLogin();
+  if (ผู้ใช้.role !== "hr") {
+    alert("หน้านี้สำหรับฝ่ายบุคคลเท่านั้น");
+    location.replace("leave-requests.html");
+    return;
+  }
 
   var รายการ = window.LEAVE_DATA.leaveTypes.slice();   // ทำสำเนาไว้แก้
   var ที่วางตาราง = document.getElementById("ตารางประเภท");

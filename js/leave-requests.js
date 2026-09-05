@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────────────────────
 
 (async function () {
-  await window.requireLogin();
+  var ผู้ใช้ = await window.requireLogin();
 
   var กล่อง = document.getElementById("ผลลัพธ์");
 
@@ -18,6 +18,11 @@
   }
 
   var ใบลาทั้งหมด = ใบลาจากฐานข้อมูล;
+
+  // พนักงานเห็นเฉพาะใบของตัวเอง (ดู ACL.md)
+  if (ผู้ใช้.role === "employee") {
+    ใบลาทั้งหมด = ใบลาทั้งหมด.filter(function (ใบ) { return ใบ.requesterId === ผู้ใช้.uid; });
+  }
 
   // ถ้ามีสถานะติดมาท้าย URL ให้กรองเฉพาะสถานะนั้น
   var สถานะที่กรอง = ค่าจากURL("status");

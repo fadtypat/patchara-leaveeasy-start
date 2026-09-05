@@ -19,7 +19,8 @@
   var html = '<div class="navbar"><span class="brand">🔧 LeaveEasy</span>';
   เมนู.forEach(function (m) {
     var active = m.href === หน้าปัจจุบัน ? ' class="active"' : "";
-    html += '<a href="' + m.href + '"' + active + ">" + m.ชื่อ + "</a>";
+    var id = m.href === "leave-types.html" ? ' id="navLeaveTypes"' : "";
+    html += '<a href="' + m.href + '"' + id + active + ">" + m.ชื่อ + "</a>";
   });
   // ช่องว่างสำหรับแสดงชื่อคนที่ล็อกอินอยู่ (เติมค่าในสัปดาห์ที่ 7)
   html += '<span class="nav-user" id="navUser"></span></div>';
@@ -49,6 +50,13 @@ window.auth.onAuthStateChanged(function (user) {
 
   ที่วางชื่อ.appendChild(ป้ายชื่อ);
   ที่วางชื่อ.appendChild(ปุ่มออก);
+
+  // ซ่อนเมนู "ประเภทการลา" ถ้าไม่ใช่ฝ่ายบุคคล (ดู ACL.md)
+  window.getDocFromCollection("users", user.uid).then(function (โปรไฟล์) {
+    var role = โปรไฟล์ ? โปรไฟล์.role : "employee";
+    var ลิงก์ประเภท = document.getElementById("navLeaveTypes");
+    if (ลิงก์ประเภท) ลิงก์ประเภท.classList.toggle("hidden", role !== "hr");
+  });
 });
 
 // แถบเตือนสีเหลือง ใช้ตอนที่ยังไม่ได้ตั้งค่า Firebase

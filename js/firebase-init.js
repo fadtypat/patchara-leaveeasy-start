@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
 // ค่าจาก Firebase Console ของโปรเจกต์ leaveeasy-patchara-c84bb
@@ -47,6 +47,12 @@ window.deleteFromCollection = async function (name, id) {
   await deleteDoc(doc(window.db, name, id));
 };
 
+// อ่านไฟล์เดียวจากโฟลเดอร์ (collection) — คืน null ถ้าไม่พบ
+window.getDocFromCollection = async function (name, id) {
+  var snap = await getDoc(doc(window.db, name, id));
+  return snap.exists() ? Object.assign({ id: snap.id }, snap.data()) : null;
+};
+
 // ── Firebase Authentication ──
 window.auth = getAuth(app);
 
@@ -67,16 +73,16 @@ window.logOut = async function () {
   await signOut(window.auth);
 };
 
-// resolve เมื่อรู้ว่าล็อกอินอยู่ · ถ้าไม่ได้ล็อกอิน เด้งไปหน้า login แล้วไม่ resolve ต่อ
+// resolve เมื่อรู้ว่าล็อกอินอยู่ (พร้อม role จากโฟลเดอร์ users ผูกมากับ user object) · ถ้าไม่ได้ล็อกอิน เด้งไปหน้า login แล้วไม่ resolve ต่อ
 window.requireLogin = function () {
   return new Promise(function (resolve) {
     var เลิกฟัง = onAuthStateChanged(window.auth, function (user) {
       เลิกฟัง(); // ฟังแค่ครั้งแรกพอ กันไม่ให้ทำงานซ้ำเมื่อสถานะเปลี่ยนภายหลัง (เช่นตอน logOut)
-      if (user) {
+      if (!user) { location.replace("login.html"); return; }
+      window.getDocFromCollection("users", user.uid).then(function (โปรไฟล์) {
+        user.role = โปรไฟล์ ? โปรไฟล์.role : "employee"; // ไม่พบโปรไฟล์ ให้ปลอดภัยไว้ก่อน
         resolve(user);
-      } else {
-        location.replace("login.html");
-      }
+      });
     });
   });
 };
