@@ -58,6 +58,7 @@
         '<div class="btn-row">' +
         '<button type="button" class="btn-ok" id="ปุ่มอนุมัติ">อนุมัติ</button>' +
         '<button type="button" class="btn-danger" id="ปุ่มไม่อนุมัติ">ไม่อนุมัติ</button>' +
+        '<button type="button" class="btn-danger" id="ปุ่มลบ">ลบใบลา</button>' +
         "</div>";
     } else {
       html += '<p class="hint">ใบนี้พิจารณาแล้ว จึงเปลี่ยนสถานะต่อไม่ได้</p>';
@@ -68,6 +69,7 @@
     if (ใบ.status === "รอพิจารณา") {
       document.getElementById("ปุ่มอนุมัติ").addEventListener("click", function () { เปลี่ยนสถานะ("อนุมัติ"); });
       document.getElementById("ปุ่มไม่อนุมัติ").addEventListener("click", function () { เปลี่ยนสถานะ("ไม่อนุมัติ"); });
+      document.getElementById("ปุ่มลบ").addEventListener("click", ลบใบลา);
     }
   }
 
@@ -93,6 +95,29 @@
       showConfigWarning("บันทึกสถานะลง Firestore ไม่สำเร็จ");
       ปุ่มอนุมัติ.disabled = false;
       ปุ่มไม่อนุมัติ.disabled = false;
+    }
+  }
+
+  // ── ลบใบลา — ต้องยืนยันก่อนทุกครั้ง ──
+  async function ลบใบลา() {
+    if (!confirm('ยืนยันการลบใบลา "' + ใบ.title + '" หรือไม่')) return;
+
+    var ปุ่มอนุมัติ = document.getElementById("ปุ่มอนุมัติ");
+    var ปุ่มไม่อนุมัติ = document.getElementById("ปุ่มไม่อนุมัติ");
+    var ปุ่มลบ = document.getElementById("ปุ่มลบ");
+    ปุ่มอนุมัติ.disabled = true;
+    ปุ่มไม่อนุมัติ.disabled = true;
+    ปุ่มลบ.disabled = true;
+
+    try {
+      await window.deleteFromCollection("leaveRequests", ใบ.id);
+      location.href = "leave-requests.html";
+    } catch (err) {
+      console.error(err);
+      showConfigWarning("ลบใบลาไม่สำเร็จ");
+      ปุ่มอนุมัติ.disabled = false;
+      ปุ่มไม่อนุมัติ.disabled = false;
+      ปุ่มลบ.disabled = false;
     }
   }
 

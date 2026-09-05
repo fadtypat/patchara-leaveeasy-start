@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
 // ค่าจาก Firebase Console ของโปรเจกต์ leaveeasy-patchara-c84bb
 // apiKey ของ Firebase web app ไม่ใช่ความลับ ความปลอดภัยจริงมาจาก Firestore Security Rules
@@ -39,4 +39,9 @@ window.addToCollection = async function (name, data) {
 // แก้เฉพาะ field ที่ส่งมาใน fields ของไฟล์เดิม ไม่แตะ field อื่นในไฟล์นั้น
 window.updateInCollection = async function (name, id, fields) {
   await updateDoc(doc(window.db, name, id), fields);
+};
+
+// ลบไฟล์ออกจากโฟลเดอร์ (collection)
+window.deleteFromCollection = async function (name, id) {
+  await deleteDoc(doc(window.db, name, id));
 };
