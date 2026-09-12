@@ -37,6 +37,12 @@ window.addToCollection = async function (name, data) {
   return ref.id;
 };
 
+// เพิ่มไฟล์ใหม่ลงโฟลเดอร์ย่อย (subcollection) ของไฟล์หนึ่ง เช่น leaveRequests/{id}/aiLog
+window.addToSubcollection = async function (parentName, parentId, subName, data) {
+  var ref = await addDoc(collection(window.db, parentName, parentId, subName), data);
+  return ref.id;
+};
+
 // แก้เฉพาะ field ที่ส่งมาใน fields ของไฟล์เดิม ไม่แตะ field อื่นในไฟล์นั้น
 window.updateInCollection = async function (name, id, fields) {
   await updateDoc(doc(window.db, name, id), fields);

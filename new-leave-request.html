@@ -9,6 +9,7 @@
   <script src="js/util.js" defer></script>
   <script src="js/nav.js" defer></script>
   <script src="js/data.js" defer></script>
+  <script src="js/openrouter-config.js" defer></script>
   <script src="js/new-leave-request.js" defer></script>
 </head>
 <body>
@@ -32,6 +33,11 @@
         <select id="leaveTypeId">
           <option value="">— เลือกประเภทการลา —</option>
         </select>
+
+        <div class="btn-row">
+          <button type="button" id="ปุ่มAIจัดประเภท" class="btn btn-ghost">ให้ AI ช่วยจัดประเภทการลา</button>
+        </div>
+        <div id="ผลลัพธ์AI" class="alert alert-ai hidden"></div>
 
         <label for="startDate">วันที่เริ่มลา</label>
         <input type="date" id="startDate">

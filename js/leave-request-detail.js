@@ -1,6 +1,7 @@
 // ─────────────────────────────────────────────────────────────
 // js/leave-request-detail.js — หน้าที่ 3 รายละเอียดใบลา
-// อ่านใบลาจริงจาก Firestore · เปลี่ยนสถานะ/ความเห็นยังอยู่แค่ในหน่วยความจำ
+// อ่านใบลา/เปลี่ยนสถานะ/ลบ จาก Firestore จริง · ความเห็นยังอยู่แค่ในหน่วยความจำ
+// US-10: ปุ่มให้ AI สรุปใบลา (ผ่าน OpenRouter) — เขียนผลลง Firestore ที่ช่อง aiSuggestion
 // ─────────────────────────────────────────────────────────────
 
 (async function () {
@@ -55,6 +56,10 @@
       ["วันที่ยื่น", esc(ใบ.createdAt)]
     ];
 
+    if (ใบ.aiSuggestion) {
+      แถว.push(["สรุปโดย AI", esc(ใบ.aiSuggestion)]);
+    }
+
     var html = แถว.map(function (r) {
       return '<div class="field-row"><span class="k">' + r[0] + "</span><span>" + r[1] + "</span></div>";
     }).join("");
@@ -63,6 +68,18 @@
     // ลบ: เจ้าของใบเอง หรือฝ่ายบุคคล (ลบของคนอื่นได้ทุกใบ) — ทั้งสองอย่างต้องยังอยู่ที่ รอพิจารณา
     var อนุมัติได้ = (ผู้ใช้.role === "manager" || ผู้ใช้.role === "hr") && ใบ.status === "รอพิจารณา";
     var ลบได้ = ใบ.status === "รอพิจารณา" && (ผู้ใช้.role === "hr" || ใบ.requesterId === ผู้ใช้.uid);
+
+    // US-10: ปุ่มให้ AI ช่วยสรุปใบลาให้หัวหน้า/ฝ่ายบุคคลอ่านก่อนกดอนุมัติ — สิทธิ์เดียวกับปุ่มอนุมัติ
+    if (อนุมัติได้) {
+      html +=
+        '<div class="btn-row">' +
+        '<button type="button" class="btn-ghost" id="ปุ่มAIสรุป">ให้ AI ช่วยสรุปใบลา</button>' +
+        "</div>" +
+        '<div id="ผลลัพธ์AIสรุป" class="alert alert-ai hidden"></div>' +
+        '<div class="btn-row hidden" id="แถวบันทึกAIสรุป">' +
+        '<button type="button" class="btn-ok" id="ปุ่มบันทึกAIสรุป">บันทึกสรุปนี้</button>' +
+        "</div>";
+    }
 
     if (อนุมัติได้ || ลบได้) {
       html += '<div class="btn-row">';
@@ -86,9 +103,134 @@
     if (อนุมัติได้) {
       document.getElementById("ปุ่มอนุมัติ").addEventListener("click", function () { เปลี่ยนสถานะ("อนุมัติ"); });
       document.getElementById("ปุ่มไม่อนุมัติ").addEventListener("click", function () { เปลี่ยนสถานะ("ไม่อนุมัติ"); });
+      document.getElementById("ปุ่มAIสรุป").addEventListener("click", สรุปด้วยAI);
+      document.getElementById("ปุ่มบันทึกAIสรุป").addEventListener("click", บันทึกAIสรุป);
     }
     if (ลบได้) {
       document.getElementById("ปุ่มลบ").addEventListener("click", ลบใบลา);
+    }
+  }
+
+  // ── US-10: ให้ AI อ่านใบลาแล้วเขียนสรุปสั้น ๆ ให้หัวหน้าอ่านก่อนตัดสินใจ ──
+  // ขั้น 1 อ่านใบลา (ใช้ ใบ ที่โหลดไว้แล้ว) → ขั้น 2 ให้ AI เขียนสรุป (ยังไม่บันทึก)
+  // → ผู้ใช้ตรวจสรุปก่อน แล้วค่อยกด "บันทึกสรุปนี้" (ขั้น 3 เขียนกลับ Firestore)
+  var สรุปที่รอบันทึก = null;
+
+  async function สรุปด้วยAI() {
+    var ปุ่มAIสรุป = document.getElementById("ปุ่มAIสรุป");
+    var แถวบันทึก = document.getElementById("แถวบันทึกAIสรุป");
+
+    var config = window.OPENROUTER_CONFIG;
+    if (!config || !config.apiKey) {
+      แสดงผลAIสรุป("ไม่พบ js/openrouter-config.js — สรุปให้ไม่ได้", "alert-warn");
+      return;
+    }
+
+    ปุ่มAIสรุป.disabled = true;
+    ปุ่มAIสรุป.textContent = "กำลังสรุป...";
+    แถวบันทึก.classList.add("hidden");
+    แสดงผลAIสรุป("กำลังให้ AI อ่านใบลาแล้วสรุป...", "alert-ai");
+
+    var ตัวควบคุม = new AbortController();
+    var หมดเวลา = setTimeout(function () { ตัวควบคุม.abort(); }, 15000);
+
+    // อยู่นอก try ให้ catch ด้านล่างเรียกใช้ตอนบันทึก log ของการเรียกที่ล้มเหลวได้ด้วย
+    var คำสั่ง = "อ่านใบขอลานี้แล้วเขียนสรุปสั้น ๆ 1-2 ประโยคภาษาไทย ให้หัวหน้าอ่านก่อนตัดสินใจอนุมัติ " +
+      "ตอบกลับเป็น JSON รูปแบบ {\"summary\": \"<ข้อความสรุป>\"} เท่านั้น ห้ามมีข้อความอื่นปน\n\n" +
+      "หัวข้อ: " + ใบ.title + "\n" +
+      "ประเภทการลา: " + ใบ.leaveTypeName + "\n" +
+      "ช่วงวันที่ลา: " + ใบ.startDate + " ถึง " + ใบ.endDate + "\n" +
+      "ผู้ขอลา: " + ใบ.requesterName + "\n" +
+      "เหตุผลการลา: " + ใบ.reason;
+
+    try {
+      var ผลลัพธ์ = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        signal: ตัวควบคุม.signal,
+        headers: {
+          "Authorization": "Bearer " + config.apiKey,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: config.model,
+          messages: [{ role: "user", content: คำสั่ง }],
+          response_format: { type: "json_object" }
+        })
+      });
+
+      var ข้อมูล = await ผลลัพธ์.json();
+      if (!ผลลัพธ์.ok) {
+        throw new Error((ข้อมูล.error && ข้อมูล.error.message) || ผลลัพธ์.statusText);
+      }
+
+      var เนื้อหา = ข้อมูล.choices && ข้อมูล.choices[0] && ข้อมูล.choices[0].message && ข้อมูล.choices[0].message.content;
+      await บันทึกAiLog(คำสั่ง, เนื้อหา || "(ไม่มีคำตอบกลับมา)");
+
+      var สรุป = null;
+      try {
+        สรุป = JSON.parse(เนื้อหา).summary;
+      } catch (e) {
+        สรุป = null;
+      }
+
+      if (สรุป && typeof สรุป === "string" && สรุป.trim()) {
+        สรุปที่รอบันทึก = สรุป.trim();
+        แสดงผลAIสรุป("ข้อเสนอจาก AI — โปรดตรวจสอบก่อนบันทึก: \"" + esc(สรุปที่รอบันทึก) + "\"", "alert-ai");
+        แถวบันทึก.classList.remove("hidden");
+      } else {
+        แสดงผลAIสรุป("AI สรุปให้ไม่สำเร็จ กรุณาลองใหม่", "alert-warn");
+      }
+    } catch (err) {
+      console.error(err);
+      var ข้อความ = err.name === "AbortError"
+        ? "AI ใช้เวลานานเกินไป — กรุณาลองใหม่"
+        : "เรียก AI ไม่สำเร็จ — กรุณาลองใหม่";
+      แสดงผลAIสรุป(ข้อความ, "alert-warn");
+      await บันทึกAiLog(คำสั่ง, "ข้อผิดพลาด: " + (err && err.message ? err.message : String(err)));
+    } finally {
+      clearTimeout(หมดเวลา);
+      ปุ่มAIสรุป.disabled = false;
+      ปุ่มAIสรุป.textContent = "ให้ AI ช่วยสรุปใบลา";
+    }
+  }
+
+  // ── ขั้น 3: เขียนสรุปที่ตรวจแล้วกลับลง Firestore (แก้เฉพาะช่อง aiSuggestion) ──
+  async function บันทึกAIสรุป() {
+    if (!สรุปที่รอบันทึก) return;
+
+    var ปุ่มบันทึก = document.getElementById("ปุ่มบันทึกAIสรุป");
+    ปุ่มบันทึก.disabled = true;
+
+    try {
+      await window.updateInCollection("leaveRequests", ใบ.id, { aiSuggestion: สรุปที่รอบันทึก });
+      ใบ.aiSuggestion = สรุปที่รอบันทึก;
+      สรุปที่รอบันทึก = null;
+      วาดใบลา();
+    } catch (err) {
+      console.error(err);
+      showConfigWarning("บันทึกสรุป AI ลง Firestore ไม่สำเร็จ");
+      ปุ่มบันทึก.disabled = false;
+    }
+  }
+
+  function แสดงผลAIสรุป(ข้อความ, คลาส) {
+    var กล่อง = document.getElementById("ผลลัพธ์AIสรุป");
+    กล่อง.textContent = ข้อความ;
+    กล่อง.className = "alert " + คลาส;
+  }
+
+  // ── บันทึก log ทุกครั้งที่เรียก AI ไม่ว่าจะสำเร็จหรือไม่ ──
+  // เก็บไว้ในโฟลเดอร์ย่อย leaveRequests/{id}/aiLog แยกจากช่อง aiSuggestion ที่เป็นผลสรุปล่าสุดที่คนยืนยันแล้ว
+  // เขียนไม่สำเร็จก็แค่ log ไว้ดู ไม่ให้กระทบขั้นตอนหลักของผู้ใช้
+  async function บันทึกAiLog(input, output) {
+    try {
+      await window.addToSubcollection("leaveRequests", ใบ.id, "aiLog", {
+        input: input,
+        output: output,
+        createdAt: เวลาตอนนี้()
+      });
+    } catch (err) {
+      console.error("บันทึก aiLog ไม่สำเร็จ", err);
     }
   }
 

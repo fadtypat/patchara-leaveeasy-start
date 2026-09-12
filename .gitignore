@@ -35,6 +35,9 @@ credentials.json
 secrets.json
 .runtimeconfig.json
 
+# คีย์ OpenRouter สำหรับหน้าทดสอบ ai-test.html — ห้ามคอมมิตเด็ดขาด
+js/openrouter-config.js
+
 # ไฟล์ที่ Firebase CLI สร้างขึ้นเองตอนใช้งาน (ไม่ใช่ความลับ แต่ไม่ควรคอมมิต)
 .firebase/
 firebase-debug.log
