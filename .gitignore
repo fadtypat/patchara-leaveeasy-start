@@ -45,6 +45,12 @@ firestore-debug.log
 ui-debug.log
 pglite-debug.log
 
+# ผลลัพธ์ที่ Playwright สร้างขึ้นเองตอนรันเทสต์ (สัปดาห์ที่ 9)
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
 
 # ─────────────────────────────────────────────────────────────
 # ✅ วิธีตรวจว่าใช้ได้จริง — ก่อน push ทุกครั้ง พิมพ์บอก Claude ว่า
